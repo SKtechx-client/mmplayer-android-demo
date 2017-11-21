@@ -1,0 +1,111 @@
+apply plugin: 'com.android.application'
+
+repositories {
+    maven { url 'https://sktechx-client.github.io/mmplayer-android' }
+}
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion '26.0.2'
+    defaultConfig {
+        applicationId "com.skplanet.musicmall"
+        minSdkVersion 16
+        targetSdkVersion 23
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        versionCode 100.plus(System.getenv("VERSION_CODE") as Integer ?: System.getenv("BUILD_NUMBER") as Integer ?: 0)
+        archivesBaseName = archivesBaseName + '-' + versionName + '-' + versionCode
+
+        buildConfigField 'String', 'MUSIC_MALL_USER_ID', "\"${music_mall_user_id}\""
+    }
+
+    flavorDimensions 'type'
+    productFlavors {
+
+        // 내부 개발자 테스트 빌드
+        intra {
+            buildConfigField 'String', 'MUSIC_MALL_SERVER', '"http://10.211.249.187:5000/home"'
+
+            ext.flavor = '.intra'
+            dimension 'type'
+            applicationIdSuffix ext.flavor
+            resValue 'string', 'app_name', 'MusicMall intra'
+        }
+
+        // 내부 개발자 Dev 테스트 빌드
+        intraDev {
+            buildConfigField 'String', 'MUSIC_MALL_SERVER', '"http://172.21.85.30/apigw/v1/page/lpoint/home"'
+
+            ext.flavor = '.intraDev'
+            dimension 'type'
+            applicationIdSuffix ext.flavor
+            resValue 'string', 'app_name', 'MusicMall ID'
+        }
+
+
+        // 외부 개발자 테스트 빌드
+        dev {
+            buildConfigField 'String', 'MUSIC_MALL_SERVER', '"http://211.188.213.11/apigw/v1/page/lpoint/home"'
+
+            ext.flavor = '.dev'
+            dimension 'type'
+            applicationIdSuffix ext.flavor
+            resValue 'string', 'app_name', 'MusicMall dev'
+        }
+
+        // 상용 설정
+        product {
+            buildConfigField 'String', 'MUSIC_MALL_SERVER', '"https://musicmate.lpoint.com/apigw/v1/page/lpoint/home"'
+
+            ext.flavor = ''
+            dimension 'type'
+            resValue 'string', 'app_name', 'MusicMall'
+        }
+    }
+
+    signingConfigs {
+        def keystoreProperties = new Properties()
+        keystoreProperties.load(new FileInputStream(file("keystore.properties")))
+
+        release {
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['keyPassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['storePassword']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+
+
+        all {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    dataBinding {
+        enabled = true
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:24.0.0'
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    testCompile 'junit:junit:4.12'
+
+    compile 'com.sktechx:musicmallweb:1.0.10'
+}
