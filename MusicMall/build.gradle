@@ -45,7 +45,7 @@ android {
 
         // 외부 개발자 테스트 빌드
         dev {
-            buildConfigField 'String', 'MUSIC_MALL_SERVER', '"http://211.188.213.11/apigw/v1/page/lpoint/home"'
+            buildConfigField 'String', 'MUSIC_MALL_SERVER', '"http://211.188.213.15/apigw/v1/page/lpoint/home"'
 
             ext.flavor = '.dev'
             dimension 'type'
@@ -107,5 +107,5 @@ dependencies {
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     testCompile 'junit:junit:4.12'
 
-    compile 'com.sktechx:musicmallweb:1.0.10'
+    compile 'com.sktechx:musicmallweb:1.0.11'
 }

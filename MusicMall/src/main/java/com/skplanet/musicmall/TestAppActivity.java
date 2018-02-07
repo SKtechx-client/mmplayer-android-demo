@@ -2,6 +2,7 @@ package com.skplanet.musicmall;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,6 +17,9 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.sktechx.musicmate.lib.musicmallweb.MusicMallWebLibrary;
 import com.sktechx.musicmate.lib.musicmallweb.MusicMateWebBridge;
 
@@ -25,8 +29,10 @@ import static com.skplanet.musicmall.R.id.webView;
 
 public class TestAppActivity extends AppCompatActivity {
     private static final String TAG = "TestAppActivity";
+    private static final String HOST_URL = BuildConfig.MUSIC_MALL_SERVER;
 
     public static final String KEY_FROM_PLAYER = "KEY_FROM_PLAYER";
+
 
     private WebView mWebView;
     private MusicMateWebBridge mWebBridge;
@@ -50,7 +56,7 @@ public class TestAppActivity extends AppCompatActivity {
         }
 
         // TODO: 상용 서버와 사용자 아이디 정보를 포함하여 url을 생성합니다.
-        String url = BuildConfig.MUSIC_MALL_SERVER;
+        String url = HOST_URL;
         String userId = BuildConfig.MUSIC_MALL_USER_ID;
 
         if (!TextUtils.isEmpty(userId)) {
@@ -124,8 +130,16 @@ public class TestAppActivity extends AppCompatActivity {
         // 모든 back key 를 웹뷰가 처리하도록 합니다.
         // 액티비티 종료는 웹뷰에서 lms://close 호출로 이루어집니다.
         if ((keyCode == KeyEvent.KEYCODE_BACK)) {
-            if (mWebBridge != null) {
-                mWebBridge.response("onBack", null);
+            String url = mWebView.getUrl();
+            if (url != null && url.startsWith(HOST_URL)) {
+                if (mWebBridge != null) {
+                    mWebBridge.response("onBack", null);
+                    return true;
+                }
+            }
+
+            if (mWebView.canGoBack()) {
+                mWebView.goBack();
                 return true;
             }
         }
@@ -147,7 +161,10 @@ public class TestAppActivity extends AppCompatActivity {
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url.startsWith("lms://close")) {
+                String LMS_DIALOG = "lms://dialog?";
+                String LMS_CLOSE = "lms://close";
+
+                if (url.startsWith(LMS_CLOSE)) {
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
@@ -164,6 +181,35 @@ public class TestAppActivity extends AppCompatActivity {
                         }
                     });
                     return true;
+                } else if (url.startsWith(LMS_DIALOG)) {
+                    String json = Uri.decode(url.substring(LMS_DIALOG.length()));
+                    JsonObject jsonObject = new Gson().fromJson(json, JsonObject.class);
+
+                    String message = null;
+                    String fn = null;
+                    try {
+                        message = jsonObject.getAsJsonPrimitive("message").getAsString();
+                        fn = jsonObject.getAsJsonPrimitive("fn").getAsString();
+                    } catch (Exception e) {
+
+                    }
+
+                    AlertDialog.Builder alertDialog =  new AlertDialog.Builder(TestAppActivity.this)
+                            .setMessage(message);
+
+                    if (TextUtils.isEmpty(fn)) {
+                        alertDialog.setNegativeButton(R.string.confirm, null);
+                    } else {
+                        final String finalFunction = fn;
+                        alertDialog.setNegativeButton(R.string.cancel, null)
+                        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                mWebView.loadUrl("javascript:" + finalFunction + "(true)");
+                            }
+                        });
+                    }
+                    alertDialog.show();
                 }
                 return false;
             }
